@@ -1,0 +1,100 @@
+<div class="mars-explorer-container">
+  <header class="explorer-header">
+    <h1>Mars Explorer</h1>
+    <p class="explorer-description">Esplora le foto scattate dai rover marziani</p>
+  </header>
+
+  <div class="mars-layout">
+    <div class="mars-controls">
+      <div class="rover-selector">
+        <h3>Seleziona Rover</h3>
+        <div class="rover-grid">
+          <div
+            *ngFor="let rover of rovers"
+            (click)="selectRover(rover.name)"
+            class="rover-card"
+            [class.active]="selectedRover === rover.name">
+            <div class="rover-icon">
+              <img [src]="rover.icon" [alt]="rover.name">
+            </div>
+            <h4>{{ rover.name }}</h4>
+            <p class="rover-status">{{ rover.status }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sol-slider">
+        <h3>SOL (Giorno Marziano)</h3>
+        <input type="range" [min]="1" [max]="maxSol" [(ngModel)]="selectedSol" (input)="onSolChange($event)">
+        <div class="sol-value">{{ selectedSol }}</div>
+      </div>
+
+      <div class="camera-selector">
+        <h3>Camera</h3>
+        <select [(ngModel)]="selectedCamera">
+          <option value="">Tutte le camere</option>
+          <option *ngFor="let camera of cameras" [ngValue]="camera">{{ camera }}</option>
+        </select>
+      </div>
+
+      <button (click)="loadPhotos()" class="btn-primary" [disabled]="loading">
+        {{ loading ? 'Caricamento...' : 'Cerca Foto' }}
+      </button>
+
+      <div *ngIf="error" class="error-banner">
+        <p>{{ error }}</p>
+        <button (click)="loadPhotos()" class="btn-secondary">Riprova</button>
+      </div>
+
+      <div class="photo-info">
+        <p>
+          <span class="label">Foto disponibili:</span>
+          <span class="value">{{ photoCount }}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="photo-grid-section">
+      <div class="photo-grid" [ngClass]="{ loading: loading }">
+        <div
+          *ngFor="let photo of photos"
+          (click)="openLightbox(photo)"
+          class="photo-card"
+          [class.loading]="loading"
+          (load)="onImageLoad($event)">
+          <img [src]="photo.imgSrc" [alt]="photo.cameraAbbreviation + '_' + photo.sol" (load)="onImageLoad($event)">
+          <div class="photo-overlay">
+            <span class="photo-camera">{{ photo.cameraAbbreviation }}</span>
+            <span class="photo-sol">SOL {{ photo.sol }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="!loading && photos.length === 0" class="grid-empty">
+          <p>Nessuna foto disponibile per i parametri selezionati.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lightbox" [class.active]="lightboxOpen">
+    <div class="lightbox-content" *ngIf="lightboxPhoto">
+      <button (click)="closeLightbox()" class="lightbox-close">&times;</button>
+      <img [src]="lightboxPhoto.imgSrc" [alt]="lightboxPhoto.cameraAbbreviation">
+      <div class="lightbox-info">
+        <h2>{{ lightboxPhoto.roverName }}</h2>
+        <p>
+          <span class="info-label">Camera:</span>
+          <span class="info-value">{{ lightboxPhoto.cameraFullName }}</span>
+        </p>
+        <p>
+          <span class="info-label">Data terrestre:</span>
+          <span class="info-value">{{ formatDate(lightboxPhoto.earthDate) }}</span>
+        </p>
+        <p>
+          <span class="info-label">Sol:</span>
+          <span class="info-value">{{ lightboxPhoto.sol }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

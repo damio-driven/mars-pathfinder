@@ -1,0 +1,108 @@
+// NASA Space Dashboard - Design System
+// Tema: spazio profondo
+
+:root {
+  --bg-deep: #0a0e1a;
+  --bg-card: #0f1629;
+  --bg-card-hover: #161d35;
+  --accent-cyan: #00d4ff;
+  --accent-orange: #ff6b35;
+  --accent-purple: #7c3aed;
+  --text-primary: #e8eaf6;
+  --text-secondary: #8892b0;
+  --danger-red: #ff4444;
+  --safe-green: #00ff88;
+  --border-subtle: rgba(0, 212, 255, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+// Animazioni
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// Utility classes
+.fade-in-up {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.sweep {
+  animation: sweep 3s linear infinite;
+}
+
+// Card styling
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px;
+  transition: background 0.3s ease, transform 0.3s ease;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-4px);
+  }
+}
+
+// Badge styling
+.badge-danger {
+  background: var(--danger-red);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.badge-safe {
+  background: var(--safe-green);
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.badge-warning {
+  background: var(--accent-orange);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}

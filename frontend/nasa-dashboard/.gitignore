@@ -1,0 +1,42 @@
+# Angular
+/dist
+/out-tsc
+/out-esm2015
+/tsconfig.*.json
+
+# Build artifacts
+/dist
+/build
+
+# Node modules
+node_modules
+
+# IDE
+.vscode
+.idea
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage
+.nyc_output
+
+# Misc
+.cache
+.ngrx

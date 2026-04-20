@@ -1,0 +1,117 @@
+<div class="asteroid-radar-container">
+  <header class="radar-header">
+    <h1>Radar degli Asteroidi</h1>
+    <p class="radar-description">Monitoraggio degli asteroidi in avvicinamento alla Terra</p>
+  </header>
+
+  <div class="radar-controls">
+    <div class="date-range">
+      <label for="startDate">Data inizio:</label>
+      <input type="date" id="startDate" [(ngModel)]="startDate" [min]="today" [max]="datePlusDays(today, 7)">
+    </div>
+    <div class="date-range">
+      <label for="endDate">Data fine:</label>
+      <input type="date" id="endDate" [(ngModel)]="endDate" [min]="startDate" [max]="datePlusDays(today, 7)">
+    </div>
+    <button (click)="loadAsteroids()" class="btn-secondary" [disabled]="loading">
+      {{ loading ? 'Caricamento...' : 'Aggiorna' }}
+    </button>
+  </div>
+
+  <div class="radar-layout">
+    <div class="radar-section">
+      <div #radarCanvas class="radar-canvas-wrapper">
+        <canvas #canvas ref="canvasElement"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="dot safe"></div>
+          <span>Safe (Sicuro)</span>
+        </div>
+        <div class="legend-item">
+          <div class="dot warning"></div>
+          <span>Warning (Attenzione)</span>
+        </div>
+        <div class="legend-item">
+          <div class="dot dangerous"></div>
+          <span>Danger (Pericoloso)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="asteroid-list-section">
+      <div class="list-header">
+        <h2>Lista Asteroidi</h2>
+        <span class="count">{{ asteroids.length }}</span>
+      </div>
+
+      <div class="asteroid-list">
+        <div
+          *ngFor="let asteroid of asteroids"
+          (click)="selectAsteroid(asteroid)"
+          (mouseenter)="onHover($event, asteroid)"
+          (mouseleave)="onLeave()"
+          class="asteroid-item"
+          [class.active]="selectedAsteroid?.id === asteroid.id"
+          [class.potentially-hazardous]="asteroid.isPotentiallyHazardous">
+          <div class="asteroid-icon">
+            <svg [attr.aria-label]="'Asteroid icon'" viewBox="0 0 24 24" fill="none">
+              <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
+              <ellipse cx="12" cy="22" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 8v8M5 15l5-2 5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="asteroid-info">
+            <h3>{{ asteroid.name }}</h3>
+            <div class="asteroid-details">
+              <span class="detail">{{ formatDate(asteroid.closeApproachDate) }}</span>
+              <span class="distance">{{ formatDistance(asteroid.missDistanceKm) }}</span>
+            </div>
+          </div>
+          <div class="asteroid-badge" [class]="'badge-' + getDangerLevel(asteroid)">
+            {{ getDangerLevel(asteroid) }}
+          </div>
+        </div>
+
+        <div *ngIf="asteroids.length === 0" class="list-empty">
+          <p>Nessun asteroide rilevato per questo periodo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="selectedAsteroid" class="asteroid-details-panel">
+    <h2>{{ selectedAsteroid.name }}</h2>
+    <div class="detail-row">
+      <span>ID:</span>
+      <span>{{ selectedAsteroid.id }}</span>
+    </div>
+    <div class="detail-row">
+      <span>Diametro stimato:</span>
+      <span>{{ formatDiameter(selectedAsteroid) }}</span>
+    </div>
+    <div class="detail-row">
+      <span>Distanza di missio:</span>
+      <span>{{ formatDistance(selectedAsteroid.missDistanceKm) }}</span>
+    </div>
+    <div class="detail-row">
+      <span>Velocità relativa:</span>
+      <span>{{ formatVelocity(selectedAsteroid.relativeVelocityKmH) }}</span>
+    </div>
+    <div class="detail-row">
+      <span>Data di avvicinamento:</span>
+      <span>{{ formatDate(selectedAsteroid.closeApproachDate) }}</span>
+    </div>
+    <div class="detail-row">
+      <span>Pericoloso:</span>
+      <span [class]="'badge-' + (selectedAsteroid.isPotentiallyHazardous ? 'dangerous' : 'safe')">
+        {{ selectedAsteroid.isPotentiallyHazardous ? 'SI' : 'NO' }}
+      </span>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+    <button (click)="loadAsteroids()" class="btn-secondary">Riprova</button>
+  </div>
+</div>

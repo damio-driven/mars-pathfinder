@@ -1,0 +1,36 @@
+<div class="gallery-container">
+  <header class="gallery-header">
+    <h1>Galleria APOD</h1>
+    <p class="gallery-description">Esplora una selezione di foto Astronauta del Giorno dal passato</p>
+  </header>
+
+  <div class="gallery-grid" [ngClass]="{ loading: loading }">
+    <div
+      *ngFor="let apod of apods"
+      (click)="viewApod(apod)"
+      class="gallery-card"
+      [class.active]="apod.url === apod?.url"
+      [ngClass]="{ loading: loading }">
+      <div class="card-image-wrapper">
+        <img [src]="getThumbnailUrl(apod)" [alt]="apod.title" (load)="onImageLoad($event)">
+        <div class="card-overlay">
+          <span class="card-date">{{ formatDate(apod.date) }}</span>
+          <span class="card-type">{{ apod.mediaType }}</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>{{ apod.title }}</h3>
+        <p class="card-copyright">{{ apod.copyright }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && apods.length === 0" class="gallery-empty">
+      <p>Nessuna foto disponibile al momento.</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+    <button (click)="refresh()" class="btn-secondary">Riprova</button>
+  </div>
+</div>

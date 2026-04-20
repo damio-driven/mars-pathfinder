@@ -1,0 +1,23 @@
+module.exports = {
+  rules: {
+    'selector-class-pattern': '^([a-z][a-z0-9]*-(?:[a-z0-9]+|-)?[a-z0-9]*|app-|shared-|core-|features-|badge-)',
+    'selector-pseudo-class-no-unknown': [true],
+    'selector-pseudo-class-parenthetical': [true],
+    'selector-pseudo-element-no-unknown': [true],
+    'selector-type-no-unknown': [true],
+    'no-descending-specificity': null,
+    'color-named': 'never',
+    'font-family-no-duplicate-names': true,
+    'function-name-case': 'lower',
+    'keyframes-name-pattern': '^[a-z][a-z0-9]*$',
+    'at-rule-no-unknown': [true, { ignoreAtRules: ['tailwind', 'apply', 'variants', 'screen'] }],
+    'no-duplicate-selectors': true,
+    'no-empty-source': true,
+    'property-no-unknown': true,
+    'string-quotes': 'single',
+    'unit-no-unknown': [true],
+    'value-keyword-case': 'lower',
+    'value-list-comma-space-after': 'always',
+    'value-list-comma-space-before': 'never'
+  }
+};

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p backend)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet add *)",
+      "Bash(mkdir -p C:/Git/mars-pathfinder-claude/backend)",
+      "Bash(mv NasaSpaceDashboard.Api C:/Git/mars-pathfinder-claude/backend/)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet run *)",
+      "Bash(curl -s http://localhost:5000/swagger/index.html)",
+      "Bash(curl *)",
+      "Bash(pkill -f \"NasaSpaceDashboard.Api\")",
+      "Bash(taskkill /F /IM dotnet.exe)",
+      "Bash(taskkill //F //IM dotnet.exe)",
+      "Bash(ng build *)",
+      "Bash(ng serve *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \"3000\")",
+      "WebFetch(domain:ssd-api.jpl.nasa.gov)",
+      "WebFetch(domain:api.nasa.gov)",
+      "WebFetch(domain:mars.nasa.gov)",
+      "Bash(grep *)"
+    ]
+  }
+}
