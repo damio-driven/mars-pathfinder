@@ -14,10 +14,14 @@ export class NasaApiService {
 
   constructor(private http: HttpClient) {}
 
-  getApod(): Observable<ApodDto> {
-    return this.http.get<ApodDto>(`${this.baseUrl}/api/apod`).pipe(
+  getApod(date?: string): Observable<ApodDto> {
+    let params = new HttpParams();
+    if (date) {
+      params = params.set('date', date);
+    }
+    return this.http.get<ApodDto>(`${this.baseUrl}/api/apod`, { params }).pipe(
       retry(2),
-      catchError(err => this.handleError(err, 'Errore caricamentoAPOD'))
+      catchError(err => this.handleError(err, 'Errore caricamento APOD'))
     );
   }
 

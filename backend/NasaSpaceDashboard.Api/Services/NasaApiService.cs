@@ -43,7 +43,7 @@ public class NasaApiService
         return key;
     }
 
-    public async Task<ApodDto?> GetApodAsync(string? date = null, int? count = null)
+    public async Task<ApodDto?> GetApodAsync(string? date = null)
     {
         var key = EnsureApiKey();
         var endpoint = $"{BaseUrl}/planetary/apod?api_key={key}";
@@ -52,41 +52,16 @@ public class NasaApiService
         {
             endpoint += $"&date={date}";
         }
-        else if (count.HasValue)
-        {
-            endpoint += $"&count={count}";
-        }
 
         var response = await _httpClient.GetAsync(endpoint);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("APOD API returned status {StatusCode}", response.StatusCode);
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("APOD API returned status {StatusCode}", error);
             return null;
         }
 
         using var stream = await response.Content.ReadAsStreamAsync();
-
-        // Se count è specificato, l'API restituisce una lista
-        if (count.HasValue)
-        {
-            var apodList = await JsonSerializer.DeserializeAsync<List<ApodDtoInternal>>(stream, JsonSerializerOptions);
-            if (apodList == null || apodList.Count == 0)
-            {
-                return null;
-            }
-            var first = apodList[0];
-            return new ApodDto(
-                first.Title ?? "",
-                first.Date ?? "",
-                first.Explanation ?? "",
-                first.Url ?? "",
-                first.HdUrl ?? "",
-                first.MediaType ?? "image",
-                first.Copyright ?? ""
-            );
-        }
-
-        // Singolo oggetto APOD
         var apod = await JsonSerializer.DeserializeAsync<ApodDtoInternal>(stream, JsonSerializerOptions);
         if (apod == null)
         {
@@ -102,6 +77,41 @@ public class NasaApiService
             apod.MediaType ?? "image",
             apod.Copyright ?? ""
         );
+    }
+
+    public async Task<List<ApodDto>> GetApodGalleryAsync(string? date, int count)
+    {
+        var key = EnsureApiKey();
+        var endpoint = $"{BaseUrl}/planetary/apod?api_key={key}&count={count}";
+
+        if (!string.IsNullOrEmpty(date))
+        {
+            endpoint += $"&date={date}";
+        }
+
+        var response = await _httpClient.GetAsync(endpoint);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("APOD Gallery API returned status {StatusCode}", response.StatusCode);
+            return [];
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        var apodList = await JsonSerializer.DeserializeAsync<List<ApodDtoInternal>>(stream, JsonSerializerOptions);
+        if (apodList == null || apodList.Count == 0)
+        {
+            return [];
+        }
+
+        return apodList.Select(a => new ApodDto(
+            a.Title ?? "",
+            a.Date ?? "",
+            a.Explanation ?? "",
+            a.Url ?? "",
+            a.HdUrl ?? "",
+            a.MediaType ?? "image",
+            a.Copyright ?? ""
+        )).ToList();
     }
 
     public async Task<List<NeoDto>> GetNearEarthObjectsAsync(string startDate, string endDate)

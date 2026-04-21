@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, NgSwitch, NgSwitchCase } from '@angular/common';
 import { Router } from '@angular/router';
 import { NasaApiService } from '../../../core/services/nasa-api.service';
 import { ApodDto } from '../../../core/models/apod.model';
@@ -7,7 +7,7 @@ import { ApodDto } from '../../../core/models/apod.model';
 @Component({
   selector: 'app-apod-hero',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, NgSwitch, NgSwitchCase],
   template: `
     <div class="apod-hero">
       <div class="hero-content">
@@ -17,23 +17,31 @@ import { ApodDto } from '../../../core/models/apod.model';
           <p class="hero-copyright">{{ apod?.copyright }}</p>
         </div>
 
-        <div class="hero-media" [ngClass]="{ 'no-media': loading }" *ngIf="apod">
-          <ng-container [ngSwitch]="apod?.mediaType">
-            <img *ngSwitchCase="'image'"
-                 [src]="apod.url"
-                 [alt]="apod.title"
-                 (error)="onMediaError($event)"
-                 class="hero-image">
-
-            <video *ngSwitchCase="'video'"
-                   [src]="apod.url"
-                   class="hero-video"
-                   controls autoplay muted playsinline></video>
-
-            <div *ngSwitchCase="'video'" class="video-overlay">
-              <button (click)="openLink(apod.url)" class="btn-primary">
-                <span>HD</span>
-              </button>
+        <div class="hero-media">
+          <div *ngIf="!apod && !loading" class="hero-placeholder">
+            <span class="placeholder-icon">🖼️</span>
+            <p>Waiting for data...</p>
+          </div>
+          <ng-container *ngIf="apod" [ngSwitch]="apod.mediaType">
+            <ng-container *ngSwitchCase="'image'">
+              <img [src]="apod.url"
+                   [alt]="apod.title"
+                   (error)="onMediaError($event)"
+                   class="hero-image">
+            </ng-container>
+            <ng-container *ngSwitchCase="'video'">
+              <video [src]="apod.url"
+                     class="hero-video"
+                     controls autoplay muted playsinline></video>
+              <div class="video-overlay">
+                <button (click)="openLink(apod.url)" class="btn-primary">
+                  <span>HD</span>
+                </button>
+              </div>
+            </ng-container>
+            <div *ngSwitchDefault class="hero-placeholder">
+              <span class="placeholder-icon">🖼️</span>
+              <p>Unsupported media type</p>
             </div>
           </ng-container>
         </div>
@@ -42,7 +50,7 @@ import { ApodDto } from '../../../core/models/apod.model';
           <button (click)="loadPrevious()" class="btn-secondary" [disabled]="loading">
             &larr; Precedente
           </button>
-          <button (click)="loadNext()" class="btn-secondary" [disabled]="loading">
+          <button (click)="loadNext()" class="btn-secondary" [disabled]="loading || isToday()">
             Successivo &rarr;
           </button>
         </div>
@@ -61,10 +69,62 @@ import { ApodDto } from '../../../core/models/apod.model';
         {{ error }}
         <button (click)="refresh()" class="btn-secondary">Riprova</button>
       </div>
+
+      <div class="loader-overlay" *ngIf="loading">
+        <p class="loader-text">Caricamento immagine...</p>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
     </div>
   `,
   styles: [
     `
+      @keyframes progressShimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      .loader-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 200;
+        backdrop-filter: blur(4px);
+        border-radius: 12px;
+        gap: 16px;
+      }
+
+      .progress-bar-wrapper {
+        width: 320px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-bar-fill {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-cyan));
+        background-size: 200% 100%;
+        border-radius: 4px;
+        transform: translateX(-100%);
+        animation: progressShimmer 1.8s ease-in-out infinite;
+      }
+
+      .loader-text {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        opacity: 0.85;
+        margin: 0;
+      }
+
       .apod-hero {
         min-height: 100vh;
         display: flex;
@@ -248,9 +308,7 @@ export class ApodHeroComponent implements OnInit {
   explanationPanel: string | null = null;
   error: string | null = null;
   loading: boolean = true;
-  previousDate: string = '';
-  nextDate: string = '';
-  today: string = '';
+  currentDate: string = '';
 
   constructor(
     private nasaApi: NasaApiService,
@@ -259,14 +317,7 @@ export class ApodHeroComponent implements OnInit {
 
   ngOnInit(): void {
     const today = new Date();
-    this.today = today.toISOString().split('T')[0];
-    const prevDate = new Date(today);
-    prevDate.setDate(prevDate.getDate() - 1);
-    this.previousDate = prevDate.toISOString().split('T')[0];
-    const nextDate = new Date(today);
-    nextDate.setDate(nextDate.getDate() + 1);
-    this.nextDate = nextDate.toISOString().split('T')[0];
-
+    this.currentDate = today.toISOString().split('T')[0];
     this.refresh();
   }
 
@@ -274,45 +325,68 @@ export class ApodHeroComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.explanationPanel = null;
+    this.currentDate = new Date().toISOString().split('T')[0];
 
     this.nasaApi.getApod().subscribe({
       next: (apod) => {
         this.apod = apod;
-        this.previousDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() - 1)).toISOString().split('T')[0];
-        this.nextDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() + 1)).toISOString().split('T')[0];
+        this.currentDate = apod.date;
         this.loading = false;
       },
       error: (err) => {
-        this.error = 'Errore nel caricamento dell APOD. Riprova pi tardi.';
+        this.error = 'Errore nel caricamento dell\'APOD. Riprova più tardi.';
         this.loading = false;
       }
     });
   }
 
   loadPrevious(): void {
-    if (this.previousDate) {
-      this.nasaApi.getApod().subscribe({
-        next: (apod) => {
-          this.apod = apod;
-          this.previousDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() - 1)).toISOString().split('T')[0];
-          this.nextDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() + 1)).toISOString().split('T')[0];
-          this.loading = false;
-        }
-      });
-    }
+    if (!this.currentDate) return;
+    const prevDate = new Date(new Date(this.currentDate).setDate(new Date(this.currentDate).getDate() - 1))
+      .toISOString()
+      .split('T')[0];
+    this.loading = true;
+    this.nasaApi.getApod(prevDate).subscribe({
+      next: (apod) => {
+        this.apod = apod;
+        this.currentDate = apod.date;
+        this.loading = false;
+      }
+    });
   }
 
   loadNext(): void {
-    if (this.nextDate) {
-      this.nasaApi.getApod().subscribe({
-        next: (apod) => {
-          this.apod = apod;
-          this.previousDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() - 1)).toISOString().split('T')[0];
-          this.nextDate = new Date(new Date(apod.date).setDate(new Date(apod.date).getDate() + 1)).toISOString().split('T')[0];
-          this.loading = false;
-        }
-      });
+    if (!this.currentDate) return;
+
+    // Disable if already on today
+    const today = new Date().toISOString().split('T')[0];
+    if (this.currentDate === today) return;
+
+    const nextDate = new Date(new Date(this.currentDate).setDate(new Date(this.currentDate).getDate() + 1))
+      .toISOString()
+      .split('T')[0];
+
+    // Also prevent fetching a future date from frontend side
+    if (nextDate > today) {
+      return;
     }
+
+    this.loading = true;
+    this.nasaApi.getApod(nextDate).subscribe({
+      next: (apod) => {
+        this.apod = apod;
+        this.currentDate = apod.date;
+        this.loading = false;
+      },
+      error: (err) => {
+        if (err.status === 400) {
+          this.error = err.error?.message || 'Data non valida.';
+        } else {
+          this.error = 'Errore nel caricamento dell\'APOD. Riprova più tardi.';
+        }
+        this.loading = false;
+      }
+    });
   }
 
   openLink(url: string | undefined): void {
@@ -335,6 +409,12 @@ export class ApodHeroComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     });
+  }
+
+  isToday(): boolean {
+    if (!this.currentDate) return false;
+    const today = new Date().toISOString().split('T')[0];
+    return this.currentDate === today;
   }
 
   onMediaError(event: Event): void {
