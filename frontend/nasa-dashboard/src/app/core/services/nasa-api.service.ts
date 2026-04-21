@@ -31,7 +31,7 @@ export class NasaApiService {
   }
 
   getNeos(startDate: string, endDate: string): Observable<NeoDto[]> {
-    const params = new HttpParams().set('start_date', startDate).set('end_date', endDate);
+    const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
     return this.http.get<NeoDto[]>(`${this.baseUrl}/api/neo`, { params }).pipe(
       retry(2),
       catchError(err => this.handleError(err, 'Errore caricamento asteroidi'))
@@ -39,13 +39,13 @@ export class NasaApiService {
   }
 
   getMarsPhotos(rover: string, sol: number, camera?: string): Observable<MarsPhotoDto[]> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('rover', rover)
       .set('sol', sol.toString())
       .set('page', '0');
 
     if (camera) {
-      params.set('camera', camera);
+      params = params.set('camera', camera);
     }
 
     return this.http.get<MarsPhotoDto[]>(`${this.baseUrl}/api/mars`, { params }).pipe(

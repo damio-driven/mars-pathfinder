@@ -1,6 +1,6 @@
 using NasaSpaceDashboard.Api.Models;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.Json.Serialization;
 
 namespace NasaSpaceDashboard.Api.Services;
 
@@ -115,11 +115,12 @@ public class NasaApiService
             _logger.LogError(error);
             return [];
         }
-        else
+        /*else
         {
             var stringResponse = await response.Content.ReadAsStringAsync();
             _logger.LogTrace(stringResponse);
-        }
+            var myDeserialize = JsonSerializer.Deserialize<NeoResponse>(stringResponse);
+        }*/
 
         using var stream = await response.Content.ReadAsStreamAsync();
         var neoResponse = await JsonSerializer.DeserializeAsync<NeoResponse>(stream, JsonSerializerOptions);
@@ -151,17 +152,9 @@ public class NasaApiService
                     System.Globalization.CultureInfo.InvariantCulture,
                     out var relVel) ? relVel : 0;
 
-                var diameterMin = double.TryParse(
-                    neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMin,
-                    System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var diaMin) ? diaMin : 0;
+                var diameterMin = neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMin ?? 0;
 
-                var diameterMax = double.TryParse(
-                    neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMax,
-                    System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var diaMax) ? diaMax : 0;
+                var diameterMax = neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMax ?? 0;
 
                 result.Add(new NeoDto(
                     neo.Id?.ToString() ?? "",
@@ -264,15 +257,25 @@ public class ApodDtoInternal
 
 public class NeoResponse
 {
+    [JsonPropertyName("near_earth_objects")]
     public Dictionary<string, List<NeoDtoInternal>?>? NearEarthObjects { get; set; }
 }
 
 public class NeoDtoInternal
 {
-    public long? Id { get; set; }
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+    
+    [JsonPropertyName("name")]
     public string? Name { get; set; }
+    
+    [JsonPropertyName("is_potentially_hazardous_asteroid")]
     public bool IsPotentiallyHazardousAsteroid { get; set; }
+    
+    [JsonPropertyName("estimated_diameter")]
     public EstimatedDiameter? EstimatedDiameter { get; set; }
+    
+    [JsonPropertyName("close_approach_data")]
     public List<CloseApproachData>? CloseApproachData { get; set; }
 }
 
@@ -283,24 +286,34 @@ public class EstimatedDiameter
 
 public class DiameterValue
 {
-    public string? EstimatedDiameterMin { get; set; }
-    public string? EstimatedDiameterMax { get; set; }
+    [JsonPropertyName("estimated_diameter_min")]
+    public double? EstimatedDiameterMin { get; set; }
+
+    [JsonPropertyName("estimated_diameter_max")]
+    public double? EstimatedDiameterMax { get; set; }
 }
 
 public class CloseApproachData
 {
+    [JsonPropertyName("close_approach_date")]
     public string? CloseApproachDate { get; set; }
+    
+    [JsonPropertyName("miss_distance")]
     public MissDistance? MissDistance { get; set; }
+    
+    [JsonPropertyName("relative_velocity")]
     public RelativeVelocity? RelativeVelocity { get; set; }
 }
 
 public class MissDistance
 {
+    [JsonPropertyName("kilometers")]
     public string? Kilometers { get; set; }
 }
 
 public class RelativeVelocity
 {
+    [JsonPropertyName("kilometers_per_hour")]
     public string? KilometersPerHour { get; set; }
 }
 
