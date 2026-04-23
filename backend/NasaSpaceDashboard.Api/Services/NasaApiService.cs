@@ -46,18 +46,18 @@ public class NasaApiService
     public async Task<ApodDto?> GetApodAsync(string? date = null)
     {
         var key = EnsureApiKey();
-        var endpoint = $"{BaseUrl}/planetary/apod?api_key={key}";
+        var url = $"/planetary/apod?api_key={key}";
 
         if (!string.IsNullOrEmpty(date))
         {
-            endpoint += $"&date={date}";
+            url += $"&date={date}";
         }
 
-        var response = await _httpClient.GetAsync(endpoint);
+        var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("APOD API returned status {StatusCode}", error);
+            _logger.LogWarning("APOD API returned status {StatusCode}", response.StatusCode);
             return null;
         }
 
@@ -82,14 +82,14 @@ public class NasaApiService
     public async Task<List<ApodDto>> GetApodGalleryAsync(string? date, int count)
     {
         var key = EnsureApiKey();
-        var endpoint = $"{BaseUrl}/planetary/apod?api_key={key}&count={count}";
+        var url = $"/planetary/apod?api_key={key}&count={count}";
 
         if (!string.IsNullOrEmpty(date))
         {
-            endpoint += $"&date={date}";
+            url += $"&date={date}";
         }
 
-        var response = await _httpClient.GetAsync(endpoint);
+        var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("APOD Gallery API returned status {StatusCode}", response.StatusCode);
@@ -116,13 +116,13 @@ public class NasaApiService
 
     public async Task<List<NeoDto>> GetNearEarthObjectsAsync(string startDate, string endDate)
     {
-        var endpoint = $"{BaseUrl}/neo/rest/v1/feed?start_date={startDate}&end_date={endDate}&api_key={ApiKey}";
+        var url = $"/neo/rest/v1/feed?start_date={startDate}&end_date={endDate}&api_key={ApiKey}";
 
-        var response = await _httpClient.GetAsync(endpoint);
+        var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogError(error);
+            _logger.LogError("NEO API returned status {StatusCode}: {Error}", response.StatusCode, error);
             return [];
         }
         /*else
@@ -163,7 +163,6 @@ public class NasaApiService
                     out var relVel) ? relVel : 0;
 
                 var diameterMin = neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMin ?? 0;
-
                 var diameterMax = neo.EstimatedDiameter?.Kilometers?.EstimatedDiameterMax ?? 0;
 
                 result.Add(new NeoDto(
@@ -186,38 +185,107 @@ public class NasaApiService
         string rover,
         int sol,
         string? camera = null,
-        int page = 0)
+        int page = 1,
+        int count = 100)
     {
-        var endpoint = $"{BaseUrl}/mars-photos/api/v1/rovers/{rover}/photos?sol={sol}&page={page}&api_key={ApiKey}";
+        var validRovers = new[] { "curiosity", "spirit", "opportunity", "perseverance" };
+        var roverLower = rover.Trim().ToLowerInvariant();
+
+        if (!validRovers.Contains(roverLower))
+        {
+            _logger.LogError("Invalid rover name: '{Rover}'. Valid values are: {ValidRovers}",
+                rover, string.Join(", ", validRovers));
+            return [];
+        }
+
+        var key = EnsureApiKey();
+        var url = $"/mars-photos/api/v1/rovers/{roverLower}/photos?sol={sol}&page={page}&api_key={key}";
 
         if (!string.IsNullOrEmpty(camera))
         {
-            endpoint += $"&camera={camera}";
+            url += $"&camera={camera}";
         }
 
-        var response = await _httpClient.GetAsync(endpoint);
+        if (count > 0)
+        {
+            url += $"&count={count}";
+        }
+
+        var fullUrl = $"{BaseUrl}{url}";
+
+        _logger.LogTrace("Calling Mars Photos API: {Endpoint}", fullUrl);
+
+        var response = await _httpClient.GetAsync(fullUrl);
         if (!response.IsSuccessStatusCode)
         {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Mars Photos API returned status {StatusCode}: {Body}", response.StatusCode, responseBody);
             return [];
         }
 
-        using var stream = await response.Content.ReadAsStreamAsync();
-        var marsResponse = await JsonSerializer.DeserializeAsync<MarsResponse>(stream, JsonSerializerOptions);
+        var responseBodyString = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(responseBodyString);
+        var root = doc.RootElement;
 
-        if (marsResponse?.Photos == null)
+        // Response format: { "code": 200, "status": "success", "photos": [...] }
+        if (!root.TryGetProperty("photos", out var photosElement) || photosElement.GetArrayLength() == 0)
         {
+            _logger.LogWarning("Mars Photos API response has no photos");
             return [];
         }
 
-        return marsResponse.Photos.Select(p => new MarsPhotoDto(
-            p.Id,
-            p.ImgSrc ?? "",
-            p.Camera?.FullName ?? "",
-            p.Camera?.Name ?? "",
-            p.Rover?.Name ?? "",
-            p.EarthDate ?? "",
-            p.Sol
-        )).ToList();
+        var result = new List<MarsPhotoDto>();
+        var idCounter = page > 1 ? (page - 1) * 100 : 0;
+
+        foreach (var photo in photosElement.EnumerateArray())
+        {
+            var imgSrc = photo.TryGetProperty("img_src", out var imgSrcProp)
+                ? imgSrcProp.GetString()
+                : null;
+
+            if (string.IsNullOrEmpty(imgSrc)) continue;
+
+            // Safely access nested camera properties without using JsonElement.Null
+            string? camName = null;
+            string? camFullName = null;
+            if (photo.TryGetProperty("camera", out var cameraProp))
+            {
+                camName = cameraProp.TryGetProperty("name", out var camNameProp) ? camNameProp.GetString() : null;
+                camFullName = cameraProp.TryGetProperty("full_name", out var camFullNameProp) ? camFullNameProp.GetString() : null;
+            }
+
+            // Safely access nested rover properties
+            string? roverName = null;
+            if (photo.TryGetProperty("rover", out var roverProp))
+            {
+                roverName = roverProp.TryGetProperty("name", out var roverNameProp) ? roverNameProp.GetString() : null;
+            }
+            roverName ??= roverLower;
+
+            var earthDate = photo.TryGetProperty("earth_date", out var earthDateProp)
+                ? earthDateProp.GetString()
+                : null;
+
+            var solVal = 0;
+            if (photo.TryGetProperty("sol", out var solProp) && solProp.TryGetInt32(out var solInt))
+            {
+                solVal = solInt;
+            }
+
+            result.Add(new MarsPhotoDto(
+                Id: ++idCounter,
+                ImgSrc: imgSrc!,
+                CameraFullName: camFullName ?? camName ?? "",
+                CameraAbbreviation: camName ?? "",
+                RoverName: roverName ?? roverLower,
+                EarthDate: earthDate ?? "",
+                Sol: solVal
+            ));
+        }
+
+        _logger.LogInformation("Retrieved {Count} photos for rover '{Rover}', sol {Sol}", result.Count, rover, sol);
+
+        return result;
     }
 
     public async Task<PhotoResult?> DownloadPhotoAsync(string url)
@@ -237,7 +305,7 @@ public class NasaApiService
             }
 
             var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-            return new PhotoResult { Content = content, ContentType = contentType };
+            return new PhotoResult { Content = content, ContentType = contentType! };
         }
         catch (Exception ex)
         {
@@ -275,16 +343,16 @@ public class NeoDtoInternal
 {
     [JsonPropertyName("id")]
     public string? Id { get; set; }
-    
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
-    
+
     [JsonPropertyName("is_potentially_hazardous_asteroid")]
     public bool IsPotentiallyHazardousAsteroid { get; set; }
-    
+
     [JsonPropertyName("estimated_diameter")]
     public EstimatedDiameter? EstimatedDiameter { get; set; }
-    
+
     [JsonPropertyName("close_approach_data")]
     public List<CloseApproachData>? CloseApproachData { get; set; }
 }
@@ -307,10 +375,10 @@ public class CloseApproachData
 {
     [JsonPropertyName("close_approach_date")]
     public string? CloseApproachDate { get; set; }
-    
+
     [JsonPropertyName("miss_distance")]
     public MissDistance? MissDistance { get; set; }
-    
+
     [JsonPropertyName("relative_velocity")]
     public RelativeVelocity? RelativeVelocity { get; set; }
 }
@@ -325,32 +393,6 @@ public class RelativeVelocity
 {
     [JsonPropertyName("kilometers_per_hour")]
     public string? KilometersPerHour { get; set; }
-}
-
-public class MarsResponse
-{
-    public List<MarsPhotoInternal>? Photos { get; set; }
-}
-
-public class MarsPhotoInternal
-{
-    public int Id { get; set; }
-    public string? ImgSrc { get; set; }
-    public Camera? Camera { get; set; }
-    public string? EarthDate { get; set; }
-    public int Sol { get; set; }
-    public Rover? Rover { get; set; }
-}
-
-public class Camera
-{
-    public string? Name { get; set; }
-    public string? FullName { get; set; }
-}
-
-public class Rover
-{
-    public string? Name { get; set; }
 }
 
 public class PhotoResult

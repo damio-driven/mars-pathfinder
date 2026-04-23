@@ -29,13 +29,14 @@ public class MarsController : ControllerBase
     /// <param name="rover">Rover name: curiosity, opportunity, spirit, perseverance</param>
     /// <param name="sol">Martian sol (day)</param>
     /// <param name="camera">Optional camera filter</param>
-    /// <param name="page">Page number (default 0)</param>
+    /// <param name="page">Page number (default 1)</param>
     [HttpGet]
     public async Task<ActionResult<List<MarsPhotoDto>>> GetMarsPhotos(
         [FromQuery] string? rover = null,
         [FromQuery] int? sol = null,
         [FromQuery] string? camera = null,
-        [FromQuery] int page = 0)
+        [FromQuery] int page = 1,
+        [FromQuery] int count = 100)
     {
         // Default to Curiosity and today's sol if not specified
         if (string.IsNullOrEmpty(rover))
@@ -56,7 +57,7 @@ public class MarsController : ControllerBase
         }
 
         // Cache key based on parameters
-        var cacheKey = $"mars-{rover}-{sol}-{camera ?? "all"}-{page}";
+        var cacheKey = $"mars-{rover}-{sol}-{camera ?? "all"}-{page}-{count}";
 
         if (_cache.TryGetValue(cacheKey, out List<MarsPhotoDto>? cachedPhotos))
         {
@@ -66,7 +67,7 @@ public class MarsController : ControllerBase
 
         try
         {
-            var photos = await _nasaApiService.GetMarsPhotosAsync(rover.ToLower(), sol.Value, camera, page);
+            var photos = await _nasaApiService.GetMarsPhotosAsync(rover.ToLower(), sol.Value, camera, page, count);
 
             // Transform imgSrc to use backend consolidated image proxy (avoids 403 from images.nasa.gov)
             var proxyBaseUrl = Request.Scheme + "://" + Request.Host;
@@ -80,7 +81,7 @@ public class MarsController : ControllerBase
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
             };
 
-            _cache.Set(cacheKey, proxyPhotos, cacheEntryOptions);
+            //_cache.Set(cacheKey, proxyPhotos, cacheEntryOptions);
 
             return Ok(proxyPhotos);
         }

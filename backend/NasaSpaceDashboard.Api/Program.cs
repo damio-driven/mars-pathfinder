@@ -5,7 +5,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo { Title = "NasaSpaceDashboard.Api", Version = "v1" });
+});
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
@@ -13,7 +16,9 @@ builder.Services.AddMemoryCache();
 // Add HttpClient for NasaApiService
 builder.Services.AddHttpClient<NasaApiService>(client =>
 {
+    var baseUrl = builder.Configuration["NasaApi:BaseUrl"] ?? "https://api.nasa.gov";
     var timeoutSeconds = int.Parse(builder.Configuration["NasaApi:RequestTimeoutSeconds"] ?? "30");
+    client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
 });
 
