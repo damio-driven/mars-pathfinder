@@ -5,50 +5,54 @@ import { NasaApiService } from '../../../core/services/nasa-api.service';
 import { ApodDto } from '../../../core/models/apod.model';
 
 @Component({
-  selector: 'app-apod-gallery',
-  standalone: true,
-  imports: [CommonModule, DatePipe],
-  template: `
+    selector: 'app-apod-gallery',
+    imports: [CommonModule, DatePipe],
+    template: `
     <div class="gallery-container">
       <header class="gallery-header">
         <h1>Galleria APOD</h1>
         <p class="gallery-description">Explore a selection of Astronomy Picture of the Day images from the past</p>
       </header>
-
+    
       <div class="gallery-grid" [ngClass]="{ 'loading': loading }">
-        <div
-          *ngFor="let apod of apods; let i = index"
-          (click)="viewApod(apod)"
-          class="gallery-card"
-          [class.active]="apod.url === currentApodUrl"
-          [ngClass]="{ 'loading': loading }"
-          [style.animation-delay]="i * 60 + 'ms'">
-          <div class="card-image-wrapper">
-            <img [src]="apod.url || '/assets/placeholder.svg'" [alt]="apod.title" (error)="onImageError($event)" loading="lazy">
-            <div class="card-overlay">
-              <span class="card-date">{{ apod.date | date:'shortDate' }}</span>
-              <span class="card-type">{{ apod.mediaType || 'image' }}</span>
+        @for (apod of apods; track apod; let i = $index) {
+          <div
+            (click)="viewApod(apod)"
+            class="gallery-card"
+            [class.active]="apod.url === currentApodUrl"
+            [ngClass]="{ 'loading': loading }"
+            [style.animation-delay]="i * 60 + 'ms'">
+            <div class="card-image-wrapper">
+              <img [src]="apod.url || '/assets/placeholder.svg'" [alt]="apod.title" (error)="onImageError($event)" loading="lazy">
+              <div class="card-overlay">
+                <span class="card-date">{{ apod.date | date:'shortDate' }}</span>
+                <span class="card-type">{{ apod.mediaType || 'image' }}</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <h3>{{ apod.title }}</h3>
+              <p class="card-copyright">{{ apod.copyright }}</p>
             </div>
           </div>
-          <div class="card-info">
-            <h3>{{ apod.title }}</h3>
-            <p class="card-copyright">{{ apod.copyright }}</p>
+        }
+    
+        @if (!loading && apods.length === 0) {
+          <div class="gallery-empty">
+            <p>Nessuna foto disponibile al momento.</p>
           </div>
-        </div>
-
-        <div *ngIf="!loading && apods.length === 0" class="gallery-empty">
-          <p>Nessuna foto disponibile al momento.</p>
-        </div>
+        }
       </div>
-
-      <div *ngIf="error" class="error-message">
-        {{ error }}
-        <button (click)="refresh()" class="btn-secondary">Riprova</button>
-      </div>
+    
+      @if (error) {
+        <div class="error-message">
+          {{ error }}
+          <button (click)="refresh()" class="btn-secondary">Riprova</button>
+        </div>
+      }
     </div>
-  `,
-  styles: [
-    `
+    `,
+    styles: [
+        `
       .gallery-container {
         padding: 24px;
         max-width: 1400px;
@@ -194,7 +198,7 @@ import { ApodDto } from '../../../core/models/apod.model';
         }
       }
     `
-  ]
+    ]
 })
 export class ApodGalleryComponent implements OnInit {
   apods: ApodDto[] = [];

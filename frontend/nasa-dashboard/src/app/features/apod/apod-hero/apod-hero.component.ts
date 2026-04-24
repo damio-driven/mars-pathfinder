@@ -1,14 +1,13 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, DatePipe, NgSwitch, NgSwitchCase } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { NasaApiService } from '../../../core/services/nasa-api.service';
 import { ApodDto } from '../../../core/models/apod.model';
 
 @Component({
-  selector: 'app-apod-hero',
-  standalone: true,
-  imports: [CommonModule, DatePipe, NgSwitch, NgSwitchCase],
-  template: `
+    selector: 'app-apod-hero',
+    imports: [DatePipe],
+    template: `
     <div class="apod-hero">
       <div class="hero-content">
         <div class="hero-header">
@@ -16,36 +15,42 @@ import { ApodDto } from '../../../core/models/apod.model';
           <p class="hero-date">{{ formatDate(apod?.date) }}</p>
           <p class="hero-copyright">{{ apod?.copyright }}</p>
         </div>
-
+    
         <div class="hero-media">
-          <div *ngIf="!apod && !loading" class="hero-placeholder">
-            <span class="placeholder-icon">🖼️</span>
-            <p>Waiting for data...</p>
-          </div>
-          <ng-container *ngIf="apod" [ngSwitch]="apod.mediaType">
-            <ng-container *ngSwitchCase="'image'">
-              <img [src]="apod.url"
-                   [alt]="apod.title"
-                   (error)="onMediaError($event)"
-                   class="hero-image">
-            </ng-container>
-            <ng-container *ngSwitchCase="'video'">
-              <video [src]="apod.url"
-                     class="hero-video"
-                     controls autoplay muted playsinline></video>
-              <div class="video-overlay">
-                <button (click)="openLink(apod.url)" class="btn-primary">
-                  <span>HD</span>
-                </button>
-              </div>
-            </ng-container>
-            <div *ngSwitchDefault class="hero-placeholder">
+          @if (!apod && !loading) {
+            <div class="hero-placeholder">
               <span class="placeholder-icon">🖼️</span>
-              <p>Unsupported media type</p>
+              <p>Waiting for data...</p>
             </div>
-          </ng-container>
+          }
+          @if (apod) {
+            @switch (apod.mediaType) {
+              @case ('image') {
+                <img [src]="apod.url"
+                  [alt]="apod.title"
+                  (error)="onMediaError($event)"
+                  class="hero-image">
+              }
+              @case ('video') {
+                <video [src]="apod.url"
+                  class="hero-video"
+                controls autoplay muted playsinline></video>
+                <div class="video-overlay">
+                  <button (click)="openLink(apod.url)" class="btn-primary">
+                    <span>HD</span>
+                  </button>
+                </div>
+              }
+              @default {
+                <div class="hero-placeholder">
+                  <span class="placeholder-icon">🖼️</span>
+                  <p>Unsupported media type</p>
+                </div>
+              }
+            }
+          }
         </div>
-
+    
         <div class="hero-actions">
           <button (click)="loadPrevious()" class="btn-secondary" [disabled]="loading">
             &larr; Precedente
@@ -54,32 +59,38 @@ import { ApodDto } from '../../../core/models/apod.model';
             Successivo &rarr;
           </button>
         </div>
-
+    
         <button (click)="showExplanation()" class="btn-explanation" [disabled]="loading || !apod">
           Mostra Explanation &darr;
         </button>
       </div>
-
-      <div *ngIf="explanationPanel" class="explanation-panel">
-        <h3>Explanation</h3>
-        <p [innerHTML]="explanationPanel"></p>
-      </div>
-
-      <div *ngIf="error" class="error-message">
-        {{ error }}
-        <button (click)="refresh()" class="btn-secondary">Riprova</button>
-      </div>
-
-      <div class="loader-overlay" *ngIf="loading">
-        <p class="loader-text">Caricamento immagine...</p>
-        <div class="progress-bar-wrapper">
-          <div class="progress-bar-fill"></div>
+    
+      @if (explanationPanel) {
+        <div class="explanation-panel">
+          <h3>Explanation</h3>
+          <p [innerHTML]="explanationPanel"></p>
         </div>
-      </div>
+      }
+    
+      @if (error) {
+        <div class="error-message">
+          {{ error }}
+          <button (click)="refresh()" class="btn-secondary">Riprova</button>
+        </div>
+      }
+    
+      @if (loading) {
+        <div class="loader-overlay">
+          <p class="loader-text">Caricamento immagine...</p>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill"></div>
+          </div>
+        </div>
+      }
     </div>
-  `,
-  styles: [
-    `
+    `,
+    styles: [
+        `
       @keyframes progressShimmer {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(100%); }
@@ -301,7 +312,7 @@ import { ApodDto } from '../../../core/models/apod.model';
         margin: 0;
       }
     `
-  ]
+    ]
 })
 export class ApodHeroComponent implements OnInit {
   apod: ApodDto | null = null;

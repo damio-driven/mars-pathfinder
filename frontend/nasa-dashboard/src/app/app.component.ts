@@ -4,10 +4,9 @@ import { NavBarComponent } from './shared/components/nav-bar/nav-bar.component';
 import { StarBackgroundComponent } from './shared/components/star-background/star-background.component';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet, NavBarComponent, StarBackgroundComponent],
-  template: `
+    selector: 'app-root',
+    imports: [RouterOutlet, NavBarComponent, StarBackgroundComponent],
+    template: `
     <app-nav-bar></app-nav-bar>
     <div class="main-content">
       <div class="content-wrapper">
@@ -15,8 +14,8 @@ import { StarBackgroundComponent } from './shared/components/star-background/sta
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .app-layout {
         display: flex;
         flex-direction: column;
@@ -44,7 +43,7 @@ import { StarBackgroundComponent } from './shared/components/star-background/sta
         min-height: calc(100vh - 64px);
       }
     `
-  ]
+    ]
 })
 export class AppComponent {
   currentRoute: string = '/apod';

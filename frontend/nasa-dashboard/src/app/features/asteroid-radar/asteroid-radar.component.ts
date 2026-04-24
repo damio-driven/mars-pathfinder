@@ -1,21 +1,20 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NasaApiService } from '../../core/services/nasa-api.service';
 import { NeoDto } from '../../core/models/neo.model';
 
 @Component({
-  selector: 'app-asteroid-radar',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-asteroid-radar',
+    imports: [FormsModule],
+    template: `
     <div class="asteroid-radar-container">
       <header class="radar-header">
         <h1>Radar degli Asteroidi</h1>
         <p class="radar-description">Monitoraggio degli asteroidi in avvicinamento alla Terra</p>
       </header>
-
+    
       <div class="radar-controls">
         <div class="date-range">
           <label for="startDate">Data inizio:</label>
@@ -29,7 +28,7 @@ import { NeoDto } from '../../core/models/neo.model';
           {{ loading ? 'Caricamento...' : 'Aggiorna' }}
         </button>
       </div>
-
+    
       <div class="radar-layout">
         <div class="radar-section">
           <div class="radar-canvas-wrapper">
@@ -50,86 +49,93 @@ import { NeoDto } from '../../core/models/neo.model';
             </div>
           </div>
         </div>
-
+    
         <div class="asteroid-list-section">
           <div class="list-header">
             <h2>Lista Asteroidi</h2>
             <span class="count">{{ asteroids.length }}</span>
           </div>
-
+    
           <div class="asteroid-list">
-            <div
-              *ngFor="let asteroid of asteroids"
-              (click)="selectAsteroid(asteroid)"
-              (mouseenter)="onHover($event, asteroid)"
-              (mouseleave)="onLeave()"
-              class="asteroid-item"
-              [class.active]="selectedAsteroid?.id === asteroid.id"
-              [class.potentially-hazardous]="asteroid.isPotentiallyHazardous">
-              <div class="asteroid-icon">
-                <svg [attr.aria-label]="'Asteroid icon'" viewBox="0 0 24 24" fill="none">
-                  <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
-                  <ellipse cx="12" cy="22" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M12 8v8M5 15l5-2 5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="asteroid-info">
-                <h3>{{ asteroid.name }}</h3>
-                <div class="asteroid-details">
-                  <span class="detail">{{ formatDate(asteroid.closeApproachDate) }}</span>
-                  <span class="distance">{{ formatDistance(asteroid.missDistanceKm) }}</span>
+            @for (asteroid of asteroids; track asteroid) {
+              <div
+                (click)="selectAsteroid(asteroid)"
+                (mouseenter)="onHover($event, asteroid)"
+                (mouseleave)="onLeave()"
+                class="asteroid-item"
+                [class.active]="selectedAsteroid?.id === asteroid.id"
+                [class.potentially-hazardous]="asteroid.isPotentiallyHazardous">
+                <div class="asteroid-icon">
+                  <svg [attr.aria-label]="'Asteroid icon'" viewBox="0 0 24 24" fill="none">
+                    <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
+                    <ellipse cx="12" cy="22" rx="8" ry="3" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M12 8v8M5 15l5-2 5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="asteroid-info">
+                  <h3>{{ asteroid.name }}</h3>
+                  <div class="asteroid-details">
+                    <span class="detail">{{ formatDate(asteroid.closeApproachDate) }}</span>
+                    <span class="distance">{{ formatDistance(asteroid.missDistanceKm) }}</span>
+                  </div>
+                </div>
+                <div class="asteroid-badge" [class]="'badge-' + getDangerLevel(asteroid)">
+                  {{ getDangerLevel(asteroid) }}
                 </div>
               </div>
-              <div class="asteroid-badge" [class]="'badge-' + getDangerLevel(asteroid)">
-                {{ getDangerLevel(asteroid) }}
+            }
+    
+            @if (asteroids.length === 0) {
+              <div class="list-empty">
+                <p>Nessun asteroide rilevato per questo periodo.</p>
               </div>
-            </div>
-
-            <div *ngIf="asteroids.length === 0" class="list-empty">
-              <p>Nessun asteroide rilevato per questo periodo.</p>
-            </div>
+            }
           </div>
         </div>
       </div>
-
-      <div *ngIf="selectedAsteroid" class="asteroid-details-panel">
-        <h2>{{ selectedAsteroid.name }}</h2>
-        <div class="detail-row">
-          <span>ID:</span>
-          <span>{{ selectedAsteroid.id }}</span>
+    
+      @if (selectedAsteroid) {
+        <div class="asteroid-details-panel">
+          <h2>{{ selectedAsteroid.name }}</h2>
+          <div class="detail-row">
+            <span>ID:</span>
+            <span>{{ selectedAsteroid.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Diametro stimato:</span>
+            <span>{{ formatDiameter(selectedAsteroid) }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Distanza di avvicinamento:</span>
+            <span>{{ formatDistance(selectedAsteroid.missDistanceKm) }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Velocità relativa:</span>
+            <span>{{ formatVelocity(selectedAsteroid.relativeVelocityKmH) }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Data di avvicinamento:</span>
+            <span>{{ formatDate(selectedAsteroid.closeApproachDate) }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Pericoloso:</span>
+            <span [class]="'badge-' + (selectedAsteroid.isPotentiallyHazardous ? 'dangerous' : 'safe')">
+              {{ selectedAsteroid.isPotentiallyHazardous ? 'SI' : 'NO' }}
+            </span>
+          </div>
         </div>
-        <div class="detail-row">
-          <span>Diametro stimato:</span>
-          <span>{{ formatDiameter(selectedAsteroid) }}</span>
+      }
+    
+      @if (error) {
+        <div class="error-message">
+          {{ error }}
+          <button (click)="loadAsteroids()" class="btn-secondary">Riprova</button>
         </div>
-        <div class="detail-row">
-          <span>Distanza di avvicinamento:</span>
-          <span>{{ formatDistance(selectedAsteroid.missDistanceKm) }}</span>
-        </div>
-        <div class="detail-row">
-          <span>Velocità relativa:</span>
-          <span>{{ formatVelocity(selectedAsteroid.relativeVelocityKmH) }}</span>
-        </div>
-        <div class="detail-row">
-          <span>Data di avvicinamento:</span>
-          <span>{{ formatDate(selectedAsteroid.closeApproachDate) }}</span>
-        </div>
-        <div class="detail-row">
-          <span>Pericoloso:</span>
-          <span [class]="'badge-' + (selectedAsteroid.isPotentiallyHazardous ? 'dangerous' : 'safe')">
-            {{ selectedAsteroid.isPotentiallyHazardous ? 'SI' : 'NO' }}
-          </span>
-        </div>
-      </div>
-
-      <div *ngIf="error" class="error-message">
-        {{ error }}
-        <button (click)="loadAsteroids()" class="btn-secondary">Riprova</button>
-      </div>
+      }
     </div>
-  `,
-  styles: [
-    `
+    `,
+    styles: [
+        `
       .asteroid-radar-container {
         padding: 24px;
         max-width: 1600px;
@@ -474,7 +480,7 @@ import { NeoDto } from '../../core/models/neo.model';
         }
       }
     `
-  ]
+    ]
 })
 export class AsteroidRadarComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;

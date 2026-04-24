@@ -2,10 +2,9 @@ import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
-  selector: 'app-nav-bar',
-  standalone: true,
-  imports: [RouterLink, RouterLinkActive],
-  template: `
+    selector: 'app-nav-bar',
+    imports: [RouterLink, RouterLinkActive],
+    template: `
     <header class="navbar" role="navigation" aria-label="Main navigation">
       <div class="navbar-container">
         <a class="navbar-logo" routerLink="/" [routerLinkActive]="'active'">
@@ -66,8 +65,8 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
       </div>
     </header>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .navbar {
         display: flex;
         align-items: center;
@@ -206,7 +205,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
         }
       }
     `
-  ]
+    ]
 })
 export class NavBarComponent {
   isActive: string = '/apod';

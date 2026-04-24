@@ -5,11 +5,10 @@ import { NasaApiService } from '../../core/services/nasa-api.service';
 import { MarsPhotoDto } from '../../core/models/mars-photo.model';
 
 @Component({
-  selector: 'app-mars-explorer',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './mars-explorer.component.html',
-  styleUrls: ['./mars-explorer.component.scss']
+    selector: 'app-mars-explorer',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './mars-explorer.component.html',
+    styleUrls: ['./mars-explorer.component.scss']
 })
 export class MarsExplorerComponent implements OnInit, OnDestroy {
   rovers: ({ name: string; icon: string; status: string })[] = [];
